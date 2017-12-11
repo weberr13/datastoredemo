@@ -12,7 +12,7 @@ import (
 
 type MyNewString struct {
 	Number int
-	S      string // <-
+	S      string
 	K      *datastore.Key `datastore:"__key__"`
 }
 
@@ -45,14 +45,14 @@ func main() {
 		cancel()
 	}
 	ctx, cancel := context.WithTimeout(pctx, 1*time.Second)
-	q := datastore.NewQuery("MyNewString").Filter("Number =", 25)
+	q := datastore.NewQuery("MyNewString").Filter("Number >=", 25)//.Limit(-1)
 	for t := cl.Run(ctx, q); ; {
 		var e MyNewString
 		_, err := t.Next(&e)
 		if err == iterator.Done {
 			break
 		}
-		if e.Number != 25 {
+		if e.Number < 25 {
 			fmt.Println("query failed")
 			os.Exit(1)
 		}
