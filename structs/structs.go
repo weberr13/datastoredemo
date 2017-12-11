@@ -12,6 +12,10 @@ type MyNewString struct {
 type MyString struct {
 	S string
 }
+type MyInt struct {
+	Number int
+	K     *datastore.Key `datastore:"__key__"`
+}
 
 type MyParent struct {
 	K      *datastore.Key `datastore:"__key__"`	
