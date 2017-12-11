@@ -6,18 +6,10 @@ import (
 	"time"
 
 	"cloud.google.com/go/datastore"
+	. "github.com/weberr13/datastoredemo/structs"
 	"golang.org/x/net/context"
 	"google.golang.org/api/iterator"
 )
-
-type MyNewString struct {
-	Number int
-	S      string
-	K      *datastore.Key `datastore:"__key__"`
-}
-type MyString struct {
-	S string
-}
 
 func main() {
 	project := os.Getenv("DATASTORE_PROJECT_ID")
@@ -60,54 +52,35 @@ func main() {
 		removeKeys = append(removeKeys, k)
 	}
 	cancel()
-	ctx, cancel = context.WithTimeout(pctx, 1*time.Second)
-	q = datastore.NewQuery("MyString").Limit(-1)
-	for t := cl.Run(ctx, q); ; {
-		var e MyString
-		k, err := t.Next(&e)
-		if err == iterator.Done {
-			break
-		}
-		removeKeys = append(removeKeys, k)
-	}
-	cancel()
 
 	ctx, cancel = context.WithTimeout(pctx, 10*time.Second)
 	_, err = cl.RunInTransaction(ctx,
 		func(t *datastore.Transaction) error {
-			err := cl.DeleteMulti(ctx, removeKeys)
+			err := t.DeleteMulti(removeKeys)
 			if err != nil {
 				return err
 			}
 			for i := 0; i < 10; i++ {
-				q = datastore.NewQuery("MyNewString").KeysOnly()
-				_, err = cl.Run(ctx, q).Next(nil)
-				if err != iterator.Done {
-					time.Sleep(10 * time.Millisecond)
-					continue
+				for j := 0; j < len(removeKeys); {
+					var e MyNewString
+					err = t.Get(removeKeys[j], &e)
+					if err != nil {
+						removeKeys = append(removeKeys[:j], removeKeys[j+1:]...)
+					} else {
+						j++
+					}
 				}
-				q = datastore.NewQuery("MyString").KeysOnly()
-				_, err = cl.Run(ctx, q).Next(nil)
-				if err != iterator.Done {
+				if len(removeKeys) == 0 {
+					break
+				} else {
 					time.Sleep(10 * time.Millisecond)
-					continue
 				}
-				return nil
 			}
-			q = datastore.NewQuery("MyNewString").KeysOnly()
-			_, err = cl.Run(ctx, q).Next(nil)
-			if err != iterator.Done {
-				return fmt.Errorf("Failed to delete MyNewString: %v", err)
-			}
-			q = datastore.NewQuery("MyString").KeysOnly()
-			_, err = cl.Run(ctx, q).Next(nil)
-			if err != iterator.Done {
-				return fmt.Errorf("Failed to delete MyString: %v", err)
-			}
+
 			return nil
 		})
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("remove failed: ", err)
 		os.Exit(1)
 	}
 	cancel()
@@ -123,16 +96,5 @@ func main() {
 		fmt.Println(k, e)
 	}
 	cancel()
-	ctx, cancel = context.WithTimeout(pctx, 1*time.Second)
-	q = datastore.NewQuery("MyString").Limit(-1)
-	for t := cl.Run(ctx, q); ; {
-		var e MyString
-		k, err := t.Next(&e)
-		if err == iterator.Done {
-			break
-		}
-		fmt.Println("delete failed!!!")
-		fmt.Println(k, e)
-	}
-	cancel()
+
 }
