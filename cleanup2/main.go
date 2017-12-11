@@ -75,22 +75,24 @@ func main() {
 	ctx, cancel = context.WithTimeout(pctx, 10*time.Second)
 	_, err = cl.RunInTransaction(ctx,
 		func(t *datastore.Transaction) error {
+			err := cl.DeleteMulti(ctx, removeKeys)
+			if err != nil {
+				return err
+			}
 			for i := 0; i < 10; i++ {
-				err := cl.DeleteMulti(ctx, removeKeys)
-				if err != nil {
-					return err
-				}
 				q = datastore.NewQuery("MyNewString").KeysOnly()
 				_, err = cl.Run(ctx, q).Next(nil)
 				if err != iterator.Done {
+					time.Sleep(10 * time.Millisecond)
 					continue
 				}
 				q = datastore.NewQuery("MyString").KeysOnly()
 				_, err = cl.Run(ctx, q).Next(nil)
 				if err != iterator.Done {
+					time.Sleep(10 * time.Millisecond)
 					continue
 				}
-				break
+				return nil
 			}
 			q = datastore.NewQuery("MyNewString").KeysOnly()
 			_, err = cl.Run(ctx, q).Next(nil)
