@@ -47,12 +47,12 @@ func main() {
 	q := datastore.NewQuery("MyNewString").Limit(-1)
 	for t := cl.Run(ctx, q); ; {
 		var e MyNewString
-		_, err := t.Next(&e)
+		k, err := t.Next(&e)
 		if err == iterator.Done {
 			break
 		}
 		if strings.HasSuffix(e.S, "25") {
-			fmt.Println(e.K.Name, e.S)
+			fmt.Println(k.Name, e.S)
 		}
 	}
 	cancel()
